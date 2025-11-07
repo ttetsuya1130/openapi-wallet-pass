@@ -1,0 +1,645 @@
+openapi: 3.0.4
+info:
+  title: Verikey Wallet Pass API
+  description: |-
+    GLソリューションズ販売のWallet Mate II に対応するApple / Google Wallet パス発行APIです。
+    ご利用には契約が必要となります。
+  # termsOfService: https://swagger.io/terms/
+  contact:
+    email: info@verikey.co.jp
+  # license:
+  #   name: Apache 2.0
+  #   url: https://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+servers:
+  - url: https://pass-api.smartkeymanager.com/v1
+tags:
+  - name: パスデザイン
+    description: Walletパスデザインを設定・管理
+  - name: パス発行
+    description: パスの発行・更新・無効化
+  - name: パスデータ
+    description: 発行済パスデータを取得
+  - name: パス更新ログ
+    description: 発行済パスの更新記録を取得
+paths:
+  /design/add:
+    post:
+      tags:
+        - パスデザイン
+      summary: 新しいデザインの設定値を保存
+      description: パス発行用のテンプレート設定値を保存
+      operationId: addDesign
+      requestBody:
+        description: 設定値をデータベースに保存
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/design'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/design'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/design_response'
+        '400':
+          description: Invalid input
+        '422':
+          description: Validation exception
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      # security:
+      #   - designstore_auth:
+      #       - write:designs
+      #       - read:designs
+  /design/edit/{designId}:
+    put:
+      tags:
+        - パスデザイン
+      summary: 作成済みデザインの設定値を更新
+      description: 登録済みのデザイン設定値を更新し、発行済パスに反映させます。
+      operationId: updateDesign
+      parameters:
+        - name: designId
+          in: path
+          description: 登録済みパスデザインをIDで指定
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: 登録済みパスを設定値で更新
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/design'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/design'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/design_response'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: object not found
+        '422':
+          description: Validation exception
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      # security:
+      #   - designstore_auth:
+      #       - write:designs
+      #       - read:designs
+  /design/{designId}:
+    get:
+      tags:
+        - パスデザイン
+      summary: 作成済みデザインの設定値を取得
+      description: デザインをIDで指定し、現在の設定値を取得
+      operationId: findDesignsById
+      parameters:
+        - name: designId
+          in: path
+          description: 登録済みパスデザインをIDで指定
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/design_response'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: object not found
+        '422':
+          description: Validation exception
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      # security:
+      #   - designstore_auth:
+      #       - write:designs
+      #       - read:designs
+    delete:
+      tags:
+        - パスデザイン
+      summary: 作成済みデザインを無効化
+      description: デザインをIDで指定し無効化します。既存のパスには影響しませんが、無効化後のデザインで新規パス発行はできません。
+      operationId: deleteDesign
+      parameters:
+        - name: designId
+          in: path
+          description: 登録済みパスデザインをIDで指定
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: design deleted
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: object not found
+        '422':
+          description: Validation exception
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      # security:
+      #   - designstore_auth:
+      #       - write:designs
+      #       - read:designs
+  /pass/add/apple:
+    post:
+      tags:
+        - パス発行
+      summary: Apple Wallet パスを新規発行
+      description: iPhone用に Apple Wallet パスを発行します。成功すると、パス追加用のファイルが返却されます。
+      operationId: createApplePass
+      requestBody:
+        description: パスデザインと、個別の設定値を登録してパスを発行します。
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/pass_request'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pass_response'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /pass/add/google:
+    post:
+      tags:
+        - パス発行
+      summary: Google Wallet パスを新規発行
+      description: Android用に Google Wallet パスを発行します。成功すると、パス追加用のリンクが返却されます。
+      operationId: createGooglePass
+      requestBody:
+        description: パスデザインと、個別の設定値を登録してパスを発行します。
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/pass_request'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pass_response'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /pass/{passId}:
+    get:
+      tags:
+        - パス発行
+      summary: 発行済パスを再取得
+      description: IDを指定し、発行済パス再発行用のデータを取得します。
+      operationId: fidePassById
+      parameters:
+        - name: passId
+          in: path
+          description: design id to delete
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pass_response'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: object not found
+        '422':
+          description: Validation exception
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - パス発行
+      summary: 発行済パスのデータを更新
+      description: IDを指定し、発行済パスの設定値を更新し、端末に登録されているパスを自動更新します。
+      operationId: updatePass
+      parameters:
+        - name: passId
+          in: path
+          description: 更新するパスIDを指定
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: 更新後のパス情報
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/pass_request'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pass_response'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: object not found
+        '422':
+          description: Validation exception
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - パス発行
+      summary: 発行済パスを無効化
+      description: IDを指定し、端末に登録されているパスを無効化します。
+      operationId: deleteUser
+      parameters:
+        - name: passId
+          in: path
+          description: 更新するパスIDを指定
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: User deleted
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: user not found
+        '422':
+          description: Validation exception
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /passes/:
+    get:
+      tags:
+        - パスデータ
+      summary: 発行済パスデータを取得
+      description: 条件を指定し、発行済パス情報を取得します。
+      operationId: queryPasses
+      parameters:
+        - name: groupId
+          in: query
+          description: グループID
+          required: true
+          schema:
+            type: string
+        - name: passId
+          in: query
+          description: パスID
+          required: false
+          schema:
+            type: string
+        - name: companyId
+          in: query
+          description: パス所属情報
+          required: false
+          schema:
+            type: string
+        - name: passStatus
+          in: query
+          description: パスの有効・無効を指定
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/passes_response"
+        '400':
+          description: Invalid username/password supplied
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /logs/:
+    get:
+      tags:
+        - パス更新ログ
+      summary: 発行済パスの更新記録を取得
+      description: 条件を指定してパス発行ログを取得
+      operationId: queryLogs
+      parameters:
+        - name: groupId
+          in: query
+          description: グループID
+          required: true
+          schema:
+            type: string
+        - name: passId
+          in: query
+          description: パスID
+          required: false
+          schema:
+            type: string
+        - name: companyId
+          in: query
+          description: 登録したパスの所属情報
+          required: false
+          schema:
+            type: string
+        - name: passStatus
+          in: query
+          description: パスの有効・無効を指定
+          schema:
+            type: boolean
+        - name: intervalStart
+          in: query
+          description: パスの使用開始期限
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: intervalEnd
+          in: query
+          description: パスの使用終了期限
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/logs_response"
+        '400':
+          description: Invalid query value
+        '404':
+          description: object not found
+        '422':
+          description: Validation exception
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    design:
+      required:
+        - name
+        - bldgName
+      type: object
+      properties:
+        name:
+          type: string
+          example: 従業員用
+        bldgName:
+          type: string
+          example: 東京オフィスビル
+        bldgMaplink:
+          type: string
+          example: https://maps.app.goo.gl/9boGetaQEVN2shqw9
+        bldgAddress:
+          type: string
+          example: 東京都千代田区内神田３丁目５−１
+        cardTitleValue:
+          type: string
+          example: bl390
+        subheaderValue:
+          type: string
+          example: bl390
+        headerValue:
+          type: string
+          example: bl390
+        hexBackgroundColor:
+          type: string
+          example: bl390
+        backgroundImageUri:
+          type: string
+          example: bl390
+        logoUri:
+          type: string
+          example: bl390
+    design_response:
+      allOf:
+        - $ref: '#/components/schemas/design'
+        - properties:
+            designId:
+              type: integer
+              example: 1234
+    pass_base:
+      type: object
+      properties:
+        groupId:
+          type: string
+          example: bl390
+        designId:
+          type: integer
+          format: int64
+          example: 10
+        companyId:
+          type: string
+          example: bl390
+        infoDescription:
+          type: string
+          example: bl390
+        contactUri:
+          type: string
+          example: bl390
+        smarttapValue:
+          type: string
+          example: bl390
+        intervalStart:
+          type: string
+          format: date-time
+          example: 2025-09-30T00:00:00
+        intervalEnd:
+          type: string
+          format: date-time
+          example: 2025-12-31T23:59:59
+    pass_request:
+      allOf:
+        - $ref: '#/components/schemas/pass_base'
+        - properties:
+            passId:
+              type: string
+              example: mn929
+        -  required:
+            - id
+            - groupId
+            - designId
+            - cardTitleValue
+            - subheaderValue
+            - headerValue
+            - smarttapValue
+    pass_response:
+      allOf:
+        - $ref: '#/components/schemas/pass_base'
+        - properties:
+            passId:
+              type: string
+              example: mn929
+    passes_response:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+          description: ここは常にTrueを返します
+        passes:
+          type: array
+          description: 最大100件返します
+          items:
+            allOf:
+              - $ref: '#/components/schemas/pass_response'
+    log:
+      required:
+        - name
+        - bldgName
+      type: object
+      properties:
+        passId:
+          type: string
+          example: xxxx9999
+        groupId:
+          type: string
+          example: zzz7777
+        update:
+          type: integer
+          format: int64
+          example: 1762422838000
+        passStatus:
+          type: boolean
+      xml:
+        name: order
+    logs_response:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+          description: ここは常にTrueを返します
+        logs:
+          type: array
+          description: 最大100件返します
+          items:
+            allOf:
+              - $ref: '#/components/schemas/log'
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string
+      xml:
+        name: '##default'
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+  # requestBodies:
+  #   Pet:
+  #     description: Pet object that needs to be added to the store
+  #     content:
+  #       application/json:
+  #         schema:
+  #           $ref: '#/components/schemas/Pet'
+  #       application/xml:
+  #         schema:
+  #           $ref: '#/components/schemas/Pet'
+  #   UserArray:
+  #     description: List of user object
+  #     content:
+  #       application/json:
+  #         schema:
+  #           type: array
+  #           items:
+  #             $ref: '#/components/schemas/User'
+  securitySchemes:
+    # designstore_auth:
+    #   type: oauth2
+    #   flows:
+    #     implicit:
+    #       authorizationUrl: https://designstore3.swagger.io/oauth/authorize
+    #       scopes:
+    #         "write:designs": modify designs in your account
+    #         "read:designs": read your designs
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
